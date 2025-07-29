@@ -45,6 +45,10 @@ class Mappers:
             axis=1,
         )
 
+        persons["tags"] = persons["tags"].apply(
+            lambda x: [{"tag": x}] if pd.notna(x) and x != "" else []
+        )
+
         persons["cidade"] = persons["cidade"].str.lower()
         cities["cNome"] = cities["cNome"].str.lower()
 
@@ -75,4 +79,63 @@ class Mappers:
             inplace=True,
         )
 
+        persons.drop_duplicates(subset=["cnpj_cpf"], inplace=True)
+
         return persons
+
+    def map_financial_transactions(
+        self,
+        financial_transactions: pd.DataFrame,
+        categories: pd.DataFrame,
+        persons: pd.DataFrame,
+        financial_accounts: pd.DataFrame,
+    ):
+        financial_transactions = financial_transactions.merge(
+            categories,
+            left_on="categoria",
+            right_on="descricao",
+            how="left",
+        )
+
+        print("Amount of na on categories:")
+        print(financial_transactions["descricao_padrao"].isna().sum())
+
+        x = financial_transactions.loc[
+            financial_transactions["descricao_padrao"].isna()
+        ]
+
+        print("Amount of na on categories:")
+        print(x["categoria"].isna().sum())
+        print(x["categoria"].unique())
+
+        financial_transactions["nome_do_negociador"] = financial_transactions[
+            "nome_do_negociador"
+        ].apply(lambda x: x[0:100] if pd.notna(x) else "")
+
+        financial_transactions = financial_transactions.merge(
+            persons,
+            left_on="nome_do_negociador",
+            right_on="nome_fantasia",
+            how="left",
+        )
+
+        x = financial_transactions.loc[
+            financial_transactions["codigo_cliente_integracao"].isna()
+        ]
+
+        print(x["nome_do_negociador"].unique())
+
+        financial_transactions = financial_transactions.merge(
+            financial_accounts,
+            left_on="conta_financeira",
+            right_on="descricao",
+            how="left",
+        )
+
+        x = financial_transactions.loc[financial_transactions["nCodCC"].isna()]
+
+        print("Amount of na on financial accounts:")
+        print(x["nCodCC"].isna().sum())
+        print(x["nCodCC"].unique())
+
+        return financial_transactions

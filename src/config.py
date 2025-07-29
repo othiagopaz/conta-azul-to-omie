@@ -10,6 +10,7 @@ OMIE_SECRET = os.getenv("OMIE_SECRET")
 OMIE_PERSONS_URL = os.getenv("OMIE_PERSONS_URL")
 OMIE_FINANCIAL_URL = os.getenv("OMIE_FINANCIAL_URL")
 OMIE_CITIES_URL = os.getenv("OMIE_CITIES_URL")
+OMIE_CATEGORIES_URL = os.getenv("OMIE_CATEGORIES_URL")
 
 
 def get_config_path():
@@ -33,6 +34,7 @@ def get_config() -> dict:
             "OMIE_PERSONS_URL": OMIE_PERSONS_URL,
             "OMIE_FINANCIAL_URL": OMIE_FINANCIAL_URL,
             "OMIE_CITIES_URL": OMIE_CITIES_URL,
+            "OMIE_CATEGORIES_URL": OMIE_CATEGORIES_URL,
         }
     )
     return config

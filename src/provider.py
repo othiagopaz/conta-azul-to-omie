@@ -71,11 +71,14 @@ class Provider:
 
         return pd.DataFrame(all_accounts, dtype=str)
 
-    def create_person_in_batch(self, persons: pd.DataFrame) -> pd.DataFrame:
+    def create_persons_in_batch(self, persons: pd.DataFrame) -> pd.DataFrame:
         batch_size = 50
         status_list = []
+        error_count = 0
+        error_limit = 9
 
-        lote = 0
+        lote = 1
+        total_lotes = len(persons) // batch_size
 
         for i in range(0, len(persons), batch_size):
             batch = persons.iloc[i : i + batch_size]
@@ -89,25 +92,34 @@ class Provider:
                 },
             }
             lote += 1
-            response = requests.post(get_config()["OMIE_PERSONS_URL"], json=payload)
+            response = requests.post(
+                get_config()["OMIE_PERSONS_URL"],
+                json=payload,
+                timeout=100,
+            )
             try:
                 data = response.json()
             except Exception:
                 data = {}
 
-            batch_result = batch.copy()
-            if data.get("codigo_status") == "0":
-                print(f"Batch {lote} of {len(persons)} created successfully")
-                print(data)
-                batch_result["status"] = "success"
-            else:
-                print(f"Batch {lote} of {len(persons)} failed")
-                print(data)
-                batch_result["status"] = data.get("descricao_status")
-
-            yield batch_result
-
             time.sleep(4)
+
+            if data.get("codigo_status") == "0":
+                print(f"Batch {lote} of {total_lotes} created successfully")
+                print(data)
+                status_list.append(data)
+            else:
+                error_count += 1
+                if error_count >= error_limit:
+                    print(f"Reached error limit of {error_limit}")
+                    break
+                print(f"Batch {lote} of {total_lotes} failed")
+                print(data)
+                status_list.append(
+                    data.get("faultstring") + " - " + data.get("faultcode")
+                )
+
+        return pd.DataFrame(status_list, dtype=str)
 
     def get_cities(self):
         url = get_config()["OMIE_CITIES_URL"]
@@ -141,3 +153,33 @@ class Provider:
             time.sleep(1)  # Be nice to the API
 
         return pd.DataFrame(all_cities, dtype=str)
+
+    def get_all_categories(self):
+        url = get_config()["OMIE_CATEGORIES_URL"]
+        all_categories = []
+        pagina = 1
+        registros_por_pagina = 500
+
+        while True:
+            payload = {
+                "app_key": get_config()["OMIE_CLIENT"],
+                "app_secret": get_config()["OMIE_SECRET"],
+                "call": "ListarCategorias",
+                "param": {
+                    "pagina": pagina,
+                    "registros_por_pagina": registros_por_pagina,
+                },
+            }
+            response = requests.post(url, json=payload)
+            data = response.json()
+            categorias = data.get("categoria_cadastro", [])
+            all_categories.extend(categorias)
+
+            total_de_paginas = data.get("total_de_paginas", 1)
+            if pagina >= total_de_paginas:
+                break
+            pagina += 1
+            print(f"Fetching page {pagina} of {total_de_paginas}")
+            time.sleep(1)  # Be nice to the API
+
+        return pd.DataFrame(all_categories, dtype=str)
