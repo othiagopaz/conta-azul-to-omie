@@ -90,52 +90,56 @@ class Mappers:
         persons: pd.DataFrame,
         financial_accounts: pd.DataFrame,
     ):
-        financial_transactions = financial_transactions.merge(
-            categories,
-            left_on="categoria",
-            right_on="descricao",
-            how="left",
-        )
-
-        print("Amount of na on categories:")
-        print(financial_transactions["descricao_padrao"].isna().sum())
-
-        x = financial_transactions.loc[
-            financial_transactions["descricao_padrao"].isna()
-        ]
-
-        print("Amount of na on categories:")
-        print(x["categoria"].isna().sum())
-        print(x["categoria"].unique())
+        columns = list(financial_transactions.columns)
 
         financial_transactions["nome_do_negociador"] = financial_transactions[
             "nome_do_negociador"
         ].apply(lambda x: x[0:100] if pd.notna(x) else "")
 
         financial_transactions = financial_transactions.merge(
+            categories,
+            left_on="categoria",
+            right_on="descricao",
+            how="left",
+            suffixes=("", "_categories"),
+        )
+
+        columns.append("codigo")
+
+        financial_transactions = financial_transactions.merge(
             persons,
             left_on="nome_do_negociador",
             right_on="nome_fantasia",
             how="left",
+            suffixes=("", "_persons"),
         )
 
-        x = financial_transactions.loc[
-            financial_transactions["codigo_cliente_integracao"].isna()
-        ]
-
-        print(x["nome_do_negociador"].unique())
+        columns.append("codigo_cliente_integracao")
 
         financial_transactions = financial_transactions.merge(
             financial_accounts,
             left_on="conta_financeira",
             right_on="descricao",
             how="left",
+            suffixes=("", "_financial_accounts"),
         )
 
-        x = financial_transactions.loc[financial_transactions["nCodCC"].isna()]
+        columns.append("nCodCC")
 
-        print("Amount of na on financial accounts:")
-        print(x["nCodCC"].isna().sum())
-        print(x["nCodCC"].unique())
+        financial_transactions["codigo_lancamento_integracao"] = (
+            financial_transactions.apply(lambda x: str(uuid.uuid4()))
+        )
+
+        columns.append("codigo_lancamento_integracao")
+
+        financial_transactions = financial_transactions[columns]
+
+        payables = financial_transactions.loc[
+            financial_transactions["tipo"] == "EXPENSE"
+        ]
+
+        receivables = financial_transactions.loc[
+            financial_transactions["tipo"] == "REVENUE"
+        ]
 
         return financial_transactions

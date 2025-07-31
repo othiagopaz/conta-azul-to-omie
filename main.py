@@ -19,9 +19,9 @@ def main():
     # persons.to_csv("outputs/pessoas.csv", index=False)
     persons = pd.read_csv("outputs/pessoas.csv", dtype=str)
 
-    financial_accounts = provider.get_all_financial_accounts()
-    financial_accounts.to_csv("outputs/financial_accounts.csv", index=False)
-    # financial_accounts = pd.read_csv("outputs/financial_accounts.csv", dtype=str)
+    # financial_accounts = provider.get_all_financial_accounts()
+    # financial_accounts.to_csv("outputs/financial_accounts.csv", index=False)
+    financial_accounts = pd.read_csv("outputs/financial_accounts.csv", dtype=str)
 
     # categories = provider.get_all_categories()
     # categories.to_csv("outputs/categories.csv", index=False)
@@ -31,6 +31,8 @@ def main():
     financial_transactions = mappers.map_financial_transactions(
         financial_transactions, categories, persons, financial_accounts
     )
+
+    financial_transactions.to_csv("outputs/financial_transactions.csv", index=False)
 
 
 if __name__ == "__main__":
