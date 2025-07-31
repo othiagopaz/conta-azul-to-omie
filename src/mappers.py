@@ -19,6 +19,8 @@ class Mappers:
             },
             inplace=True,
         )
+
+
         persons["pessoa_fisica"] = persons["pessoa_fisica"].apply(
             lambda x: "S" if x == "F" else "N"
         )
